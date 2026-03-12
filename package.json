@@ -1,0 +1,16 @@
+{
+  "name": "credit-request-system-root",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "install:all": "npm install --prefix ./packages/shared && npm install --prefix ./apps/backend && npm install --prefix ./apps/frontend",
+    "dev:backend": "npm --prefix ./apps/backend run dev",
+    "dev:frontend": "npm --prefix ./apps/frontend run dev",
+    "dev": "echo 'Run backend and frontend in separate terminals:' && echo 'npm run dev:backend' && echo 'npm run dev:frontend'",
+    "lint": "eslint . --ext .ts,.tsx --fix || true"
+  }
+}
