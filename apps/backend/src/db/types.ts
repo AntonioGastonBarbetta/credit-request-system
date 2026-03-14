@@ -48,4 +48,23 @@ export interface Database {
   credit_requests: CreditRequestsTable;
   status_history: StatusHistoryTable;
   migrations: MigrationsTable;
+  outbox_events: {
+    id: UUID;
+    aggregate_type: string;
+    aggregate_id: UUID;
+    event_type: string;
+    payload: string; // jsonb stored as string
+    status: string;
+    attempts: number;
+    available_at: string;
+    created_at: string;
+    updated_at: string;
+  };
+  audit_logs: {
+    id: UUID;
+    credit_request_id?: UUID | null;
+    event_type: string;
+    payload: string;
+    created_at: string;
+  };
 }

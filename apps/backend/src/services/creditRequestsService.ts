@@ -4,7 +4,7 @@ import { creditRequestsRepository } from '../repositories/creditRequestsReposito
 import { statusHistoryRepository } from '../repositories/statusHistoryRepository';
 import type { Insertable, Selectable } from 'kysely';
 import type { Database } from '../db/types';
-import { CreditRequestStatus } from '@credit-request-system/shared';
+import { CreditRequestStatus, SYSTEM_USER_ID } from '@credit-request-system/shared';
 import { resolvePolicy, resolveProvider } from '../domain/countries/CountryResolver';
 
 // Simple DTO validation schema
@@ -91,5 +91,54 @@ export async function getCreditRequestDetail(id: string) {
   const history = await statusHistoryRepository.listByCreditRequestId(id);
 
   return { creditRequest, history };
+}
+
+export async function updateCreditRequestStatus(id: string, newStatus: Database['credit_requests']['status'], reason: string | null) {
+  const creditRequest = await creditRequestsRepository.findById(id);
+  if (!creditRequest) {
+    const error = new Error('Not found');
+    (error as any).status = 404;
+    throw error;
+  }
+
+  const currentStatus = creditRequest.status;
+
+  // transition rules
+  const allowedTransitions: Record<Database['credit_requests']['status'], Database['credit_requests']['status'][] > = {
+    PENDING: ['UNDER_REVIEW', 'APPROVED', 'REJECTED'],
+    UNDER_REVIEW: ['APPROVED', 'REJECTED'],
+    APPROVED: [],
+    REJECTED: [],
+    DRAFT: [],
+    SUBMITTED: []
+  };
+
+  const allowed = allowedTransitions[currentStatus as Database['credit_requests']['status']] || [];
+  if (!allowed.includes(newStatus)) {
+    const err = new Error(`Invalid status transition from ${currentStatus} to ${newStatus}`);
+    (err as any).status = 400;
+    throw err;
+  }
+
+  const updated = await creditRequestsRepository.updateStatus(id, newStatus, reason);
+  if (!updated) {
+    const error = new Error('Failed to update status');
+    (error as any).status = 500;
+    throw error;
+  }
+
+  // create status history
+  await statusHistoryRepository.create({
+    credit_request_id: id,
+    previous_status: currentStatus as Database['status_history']['previous_status'],
+    new_status: newStatus as Database['status_history']['new_status'],
+    changed_by_user_id: SYSTEM_USER_ID,
+    reason: reason ?? null
+  } as unknown as Insertable<Database['status_history']>);
+
+  // placeholder hook for future async jobs
+  // e.g., enqueueNotification(updated) -- left for later
+
+  return updated;
 }
 

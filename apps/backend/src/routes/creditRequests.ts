@@ -4,6 +4,7 @@ import {
   getCreditRequest,
   createCreditRequest
 } from '../controllers/creditRequestsController';
+import { updateCreditRequestStatus } from '../controllers/creditRequestsController';
 
 const router = Router();
 
@@ -11,5 +12,6 @@ const router = Router();
 router.get('/', listCreditRequests);
 router.get('/:id', getCreditRequest);
 router.post('/', createCreditRequest);
+router.patch('/:id/status', updateCreditRequestStatus);
 
 export default router;

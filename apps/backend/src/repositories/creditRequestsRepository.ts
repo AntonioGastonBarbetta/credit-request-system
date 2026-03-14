@@ -25,7 +25,7 @@ export const creditRequestsRepository = {
     return created;
   },
 
-  async updateStatus(id: string, status: string, decision_reason?: string | null): Promise<Selectable<Database['credit_requests']> | undefined> {
+  async updateStatus(id: string, status: Database['credit_requests']['status'], decision_reason?: string | null): Promise<Selectable<Database['credit_requests']> | undefined> {
     const db = getDb();
     const updateData: Updateable<Database['credit_requests']> = {
       status,

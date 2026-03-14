@@ -10,6 +10,7 @@ export declare enum CreditRequestStatus {
     APPROVED = "APPROVED",
     REJECTED = "REJECTED"
 }
+export declare const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000000";
 export type AuthToken = {
     accessToken: string;
     expiresAt: string;

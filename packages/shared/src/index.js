@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreditRequestStatus = exports.CountryCode = void 0;
+exports.SYSTEM_USER_ID = exports.CreditRequestStatus = exports.CountryCode = void 0;
 var CountryCode;
 (function (CountryCode) {
     CountryCode["ES"] = "ES";
@@ -15,3 +15,4 @@ var CreditRequestStatus;
     CreditRequestStatus["APPROVED"] = "APPROVED";
     CreditRequestStatus["REJECTED"] = "REJECTED";
 })(CreditRequestStatus || (exports.CreditRequestStatus = CreditRequestStatus = {}));
+exports.SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';

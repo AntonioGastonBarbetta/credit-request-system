@@ -12,5 +12,9 @@
     "dev:frontend": "npm --prefix ./apps/frontend run dev",
     "dev": "echo 'Run backend and frontend in separate terminals:' && echo 'npm run dev:backend' && echo 'npm run dev:frontend'",
     "lint": "eslint . --ext .ts,.tsx --fix || true"
+  },
+  "dependencies": {
+    "bullmq": "^5.71.0",
+    "ioredis": "^5.10.0"
   }
 }

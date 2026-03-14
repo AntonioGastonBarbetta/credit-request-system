@@ -4,5 +4,6 @@
     "declaration": true,
     "sourceMap": false,
     "rootDir": "../.."
-  }
+  },
+  "include": ["src", "../../packages/shared/src"]
 }
