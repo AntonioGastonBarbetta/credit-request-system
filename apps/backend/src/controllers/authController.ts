@@ -5,7 +5,7 @@ export const placeholderAuth = async (req: Request, res: Response, next: NextFun
   try {
     if (req.path.endsWith('/login')) {
       const result = await login(req.body);
-      return res.status(501).json(result);
+      return res.status(200).json(result);
     }
 
     if (req.path.endsWith('/logout')) {

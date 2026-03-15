@@ -6,6 +6,9 @@ import type { Insertable, Selectable } from 'kysely';
 import type { Database } from '../db/types';
 import { CreditRequestStatus, SYSTEM_USER_ID } from '@credit-request-system/shared';
 import { resolvePolicy, resolveProvider } from '../domain/countries/CountryResolver';
+import { emitEvent } from '../realtime/socketServer';
+import { cacheDel } from '../cache/cacheService';
+import { creditRequestsListKey, creditRequestByIdKey } from '../cache/cacheKeys';
 
 // Simple DTO validation schema
 const createSchema = z.object({
@@ -73,6 +76,21 @@ export async function createCreditRequest(data: unknown): Promise<Selectable<Dat
 
   await statusHistoryRepository.create(historyEntry);
 
+  // emit realtime event for created credit request
+  try {
+    emitEvent('credit_request.created', { creditRequest: created });
+  } catch (err) {
+    // don't block on realtime failures
+  }
+
+  // invalidate caches that may be affected
+  try {
+    await cacheDel(creditRequestsListKey());
+    await cacheDel(creditRequestByIdKey(created.id));
+  } catch (e) {
+    // ignore cache errors
+  }
+
   return created;
 }
 
@@ -138,6 +156,21 @@ export async function updateCreditRequestStatus(id: string, newStatus: Database[
 
   // placeholder hook for future async jobs
   // e.g., enqueueNotification(updated) -- left for later
+
+  // emit realtime event for status change
+  try {
+    emitEvent('credit_request.status_changed', { creditRequest: updated });
+  } catch (err) {
+    // ignore
+  }
+
+  // invalidate caches
+  try {
+    await cacheDel(creditRequestsListKey());
+    await cacheDel(creditRequestByIdKey(id));
+  } catch (e) {
+    // ignore
+  }
 
   return updated;
 }

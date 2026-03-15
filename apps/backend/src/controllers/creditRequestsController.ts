@@ -4,6 +4,8 @@ import { CreditRequestStatus } from '@credit-request-system/shared';
 import type { Database } from '../db/types';
 import { statusUpdateSchema } from '../validation/statusUpdate';
 import { logger } from '../logger';
+import { cacheGet, cacheSet } from '../cache/cacheService';
+import { creditRequestsListKey, creditRequestByIdKey } from '../cache/cacheKeys';
 
 export const listCreditRequests = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -13,8 +15,14 @@ export const listCreditRequests = async (req: Request, res: Response, next: Next
       country_code: req.query.country_code as string | undefined,
       status
     };
+    const key = creditRequestsListKey(filters as any);
+    const cached = await cacheGet<{ data: any[] }>(key);
+    if (cached) return res.json(cached);
+
     const data = await listService(filters);
-    res.json({ data });
+    const payload = { data };
+    await cacheSet(key, payload);
+    res.json(payload);
   } catch (err) {
     next(err);
   }
@@ -22,7 +30,13 @@ export const listCreditRequests = async (req: Request, res: Response, next: Next
 
 export const getCreditRequest = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await getCreditRequestDetail(req.params.id);
+    const id = req.params.id;
+    const key = creditRequestByIdKey(id);
+    const cached = await cacheGet<any>(key);
+    if (cached) return res.json(cached);
+
+    const result = await getCreditRequestDetail(id);
+    await cacheSet(key, result);
     res.json(result);
   } catch (err) {
     next(err);

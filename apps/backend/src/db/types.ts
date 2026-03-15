@@ -67,4 +67,17 @@ export interface Database {
     payload: string;
     created_at: string;
   };
+  webhook_deliveries: {
+    id: UUID;
+    credit_request_id?: UUID | null;
+    event_type: string;
+    target_url: string;
+    request_payload: string;
+    response_status_code?: number | null;
+    response_body?: string | null;
+    delivery_status: string;
+    error_message?: string | null;
+    created_at: string;
+    updated_at: string;
+  };
 }

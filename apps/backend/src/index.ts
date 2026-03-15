@@ -2,11 +2,15 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { createApp } from './app';
+import { createServer } from 'http';
+import { initSocketServer } from './realtime/socketServer';
+import { ensureAdminUser } from './services/seedService';
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 const host = process.env.HOST || 'localhost';
 
 const app = createApp();
+const server = createServer(app);
 
 function formatSeparator(length = 49) {
   return '='.repeat(length);
@@ -20,6 +24,9 @@ function printStartupBanner(p: number) {
   console.log(banner);
 }
 
-app.listen(port, () => {
+server.listen(port, () => {
   printStartupBanner(port);
+  initSocketServer(server);
+  // ensure a local admin user exists for development
+  ensureAdminUser().catch(() => undefined);
 });

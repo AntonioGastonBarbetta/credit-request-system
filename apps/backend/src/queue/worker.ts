@@ -5,6 +5,7 @@ import { outboxRepository } from '../repositories/outboxRepository';
 import { logger } from '../logger';
 import type { Insertable } from 'kysely';
 import type { Database } from '../db/types';
+import { sendWebhookNotification } from '../services/webhookNotificationService';
 
 async function processor(job: { id: string; name: string; data: unknown }) {
   const data = job.data as { outboxId: string; payload: unknown } | undefined;
@@ -26,6 +27,27 @@ async function processor(job: { id: string; name: string; data: unknown }) {
     await auditLogsRepository.create(entry);
     await outboxRepository.markProcessed(outboxId);
     logger.info({ outboxId, job: job.name }, 'job.processed');
+    // attempt webhook notification for supported events
+    try {
+      // Map event names used in outbox to external webhook event types
+      const webhookEventType = job.name === 'AUDIT_LOG_CREATED' ? 'CREDIT_REQUEST_CREATED' : job.name;
+      // Build a minimal payload from available data
+      const webhookPayload = {
+        event_type: webhookEventType,
+        credit_request_id: (payload as any)?.credit_request_id ?? (payload as any)?.id ?? null,
+        country_code: (payload as any)?.country_code ?? null,
+        current_status: (payload as any)?.new_status ?? (payload as any)?.status ?? null,
+        requested_amount: (payload as any)?.requested_amount ? Number((payload as any).requested_amount) : null,
+        monthly_income: (payload as any)?.monthly_income ? Number((payload as any).monthly_income) : null,
+        timestamp: new Date().toISOString(),
+        metadata: null
+      } as const;
+
+      // fire-and-forget but await to persist delivery result inside service
+      await sendWebhookNotification(webhookEventType, webhookPayload as any);
+    } catch (e) {
+      logger.error({ err: e, outboxId }, 'worker.webhook.error');
+    }
   } catch (err) {
     logger.error({ err, outboxId }, 'job.failed');
     try {

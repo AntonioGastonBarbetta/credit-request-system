@@ -1,54 +1,216 @@
-# Credit Request System (Monorepo)
+# Credit Request System
 
-This repository is a starter monorepo for a multi-country credit request system.
+A small, multi-country credit request processing system demonstrating a production-like architecture with synchronous validation, asynchronous processing, webhook delivery, and realtime updates.
 
-Structure
-- apps/backend — Node.js + TypeScript + Express backend skeleton
-- apps/frontend — React + TypeScript frontend skeleton (Vite)
-- packages/shared — Shared TypeScript types and enums
+This repository is a teaching/demo project that implements:
 
-Quick start
+- Credit request creation with country-specific validation and provider checks
+- Status transitions with audit/history
+- Outbox pattern → producer → BullMQ → worker for async processing
+- Webhook delivery persistence and retry
+- Realtime frontend updates via Socket.IO
+- JWT-based authentication for protected write operations
+- Redis caching for read endpoints
 
-1. Install dependencies for all packages:
+
+## Technologies Used
+
+- Backend
+	- Node.js, TypeScript, Express
+	- Kysely (typed SQL), PostgreSQL
+	- BullMQ (typed-like usage) + Redis
+	- Socket.IO for realtime
+	- Pino for logging
+	- Zod for validation
+	- jsonwebtoken + bcryptjs for auth
+
+- Frontend
+	- React + Vite + TypeScript
+	- Socket.IO client
+
+- Database / Storage
+	- PostgreSQL
+	- Redis (cache + queue)
+
+- Dev / Infra
+	- Docker / docker-compose
+	- Kubernetes manifests (examples)
+
+
+## Architecture
+
+Architecture diagram will be inserted here.
+
+Textual flow:
+
+Frontend → Backend API → PostgreSQL
+Backend → Redis/BullMQ → Worker
+Worker → Webhook delivery
+Backend → Socket.IO → Frontend realtime updates
+
+(Place diagram image above this paragraph.)
+
+
+## Quick Start (Run Locally)
+
+These steps assume you have Docker and Node.js (>=16) installed.
+
+1. Clone the repository
 
 ```bash
-npm run install:all
+git clone <repo-url>
+cd credit-request-system
 ```
 
-2. Run the backend (in a terminal):
-
-```bash
-npm run dev:backend
-```
-
-3. Run the frontend (in another terminal):
-
-```bash
-npm run dev:frontend
-```
-
-## Environment configuration
-
-This project uses environment variables for database and queue configuration. To set up your local environment:
-
-1. Copy the example file for the backend:
+2. Copy env examples
 
 ```bash
 cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/.env.example apps/frontend/.env
 ```
 
-2. Edit `apps/backend/.env` and fill in real values (database password, Redis URL, secrets).
-
-3. Run the backend (example):
+3. Start infrastructure (Postgres + Redis)
 
 ```bash
-npm --prefix ./apps/backend run build
-npm --prefix ./apps/backend run migrate
-npm --prefix ./apps/backend run start
+docker-compose up -d
 ```
 
-Security note: Do NOT commit your `apps/backend/.env` file. The repository contains `apps/backend/.env.example` as a template only.
+4. Apply database migrations
 
-Notes
-- Backend logs the exact port at startup.
-- The codebase is organized for country-specific rules, bank providers, Redis/BullMQ and Socket.IO to be added later without major refactors.
+```bash
+npm --prefix ./apps/backend install
+npm --prefix ./apps/backend run migrate
+```
+
+5. Install frontend dependencies
+
+```bash
+npm --prefix ./apps/frontend install
+```
+
+6. Start backend (dev)
+
+```bash
+npm --prefix ./apps/backend run dev
+```
+
+7. Start frontend (dev)
+
+```bash
+npm --prefix ./apps/frontend run dev
+```
+
+8. Open the frontend app in your browser (Vite will print the URL)
+
+
+## Environment Variables
+
+Important env vars (see `apps/backend/.env.example` and `apps/frontend/.env.example`):
+
+- Backend
+	- `DATABASE_URL` - Postgres connection string
+	- `REDIS_URL` - Redis connection string
+	- `JWT_SECRET` - secret used for signing JWTs (change in production)
+	- `CACHE_TTL_SECONDS` - cache TTL for read endpoints
+	- `ADMIN_EMAIL` / `ADMIN_PASSWORD` - seeded admin for dev
+	- `WEBHOOK_TARGET_URL` - target for webhook delivery (mock endpoint included)
+
+- Frontend
+	- `VITE_API_URL` - base URL for API (e.g. http://localhost:4000)
+	- `VITE_SOCKET_URL` - Socket.IO URL (e.g. http://localhost:4000)
+
+
+## API Endpoints
+
+All endpoints are prefixed with `/api`.
+
+ - POST /api/auth/login
+	 - Description: login with credentials to receive a JWT.
+	 - Auth: public
+	 - Body: `{ "username": "<email>", "password": "<password>" }`
+	 - Response: `{ "token": "<jwt>", "user": { "id":"...","email":"..." }}`
+
+ - GET /api/credit-requests
+	 - Description: list credit requests (supports optional `country_code` and `status` query params)
+	 - Auth: public
+	 - Response: `{ data: [ { id, applicant_name, status, ... } ] }`
+
+ - GET /api/credit-requests/:id
+	 - Description: get credit request details and status history
+	 - Auth: public
+	 - Response: `{ creditRequest: {...}, history: [...] }`
+
+ - POST /api/credit-requests
+	 - Description: create a new credit request
+	 - Auth: Bearer JWT required
+	 - Body: `{ country_code, applicant_name, document_number, monthly_income, requested_amount, currency }`
+	 - Response: created credit request object (201)
+
+ - PATCH /api/credit-requests/:id/status
+	 - Description: update the status of a credit request (valid transitions enforced)
+	 - Auth: Bearer JWT required
+	 - Body: `{ status: 'APPROVED'|'REJECTED'|... , reason?: string }`
+	 - Response: `{ creditRequest: updated }`
+
+ - POST /api/mock-external/webhook
+	 - Description: mock external webhook receiver used in local testing
+	 - Auth: public (for local demo)
+
+
+## Functional Behavior
+
+ - Country validation rules
+	 - Each supported country exposes a validator and policy that determines initial status and whether review is required.
+
+ - Status transitions
+	 - The system enforces allowed transitions. Invalid transitions return 400.
+
+ - Asynchronous processing
+	 - Writes may produce outbox entries that are processed by the producer and dispatched to BullMQ.
+	 - A worker consumes jobs, writes audit logs, and attempts webhook delivery.
+
+ - Webhook flow
+	 - Webhook deliveries are persisted with status and response; retries are supported via worker logic.
+
+ - Realtime updates
+	 - When credit requests are created or statuses change, backend emits Socket.IO events to connected clients.
+
+ - Caching
+	 - GET list and GET detail are cached in Redis for short TTL (default 45s). Cache is invalidated on writes.
+
+ - Authentication
+	 - Protected write endpoints require a valid JWT. Use `/api/auth/login` to obtain one.
+
+
+## Test Scenarios
+
+ - Create a valid credit request (should validate and return 201).
+ - Create with invalid document (should return 400).
+ - Update status with valid transition (should succeed and emit realtime update).
+ - Webhook delivery success (worker persists delivery record).
+ - Realtime update case: open frontend list, create via API, verify list updates automatically.
+ - Auth protected route: attempt to create without token → 401.
+ - Cache: call list twice within TTL → second call should be a cache hit.
+
+
+## Repository Structure
+
+ - `apps/backend` — Express API, services, migrations, queue producer/worker
+ - `apps/frontend` — React + Vite frontend
+ - `packages/shared` — shared types and constants
+ - `docker-compose.yml` — local infra: Postgres + Redis
+ - `k8s/` — example Kubernetes manifests
+
+
+## Future Improvements
+
+ - Add frontend login UX and secure token storage (HttpOnly cookie)
+ - Improve production readiness: HTTPS, rate limiting, secrets management, monitoring
+ - Add E2E tests and CI pipelines
+ - Harden worker retry policies and observability
+
+
+## Contact
+
+ For questions or feedback, open an issue or contact the maintainer.
+
