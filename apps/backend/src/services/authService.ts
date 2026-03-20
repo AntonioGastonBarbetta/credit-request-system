@@ -7,10 +7,10 @@ import { logger } from '../logger';
 
 export async function login(credentials: Credentials) {
   const db = await getDb();
-  const { username, password } = credentials;
-  const row = await db.selectFrom('users').selectAll().where('email', '=', username).executeTakeFirst();
+  const { email, password } = credentials;
+  const row = await db.selectFrom('users').selectAll().where('email', '=', email).executeTakeFirst();
   if (!row) {
-    logger.info({ username }, 'auth.login.failure');
+    logger.info({ email }, 'auth.login.failure');
     const error = new Error('Invalid credentials') as Error & { status?: number };
     error.status = 401;
     throw error;
@@ -18,7 +18,7 @@ export async function login(credentials: Credentials) {
 
   const ok = await bcrypt.compare(password, row.password_hash);
   if (!ok) {
-    logger.info({ username }, 'auth.login.failure');
+    logger.info({ email }, 'auth.login.failure');
     const error = new Error('Invalid credentials') as Error & { status?: number };
     error.status = 401;
     throw error;

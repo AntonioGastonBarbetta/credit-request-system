@@ -13,6 +13,25 @@ This repository is a teaching/demo project that implements:
 - Redis caching for read endpoints
 
 
+## ⚡ Quickest Local Start
+
+Run these three commands to get a local development environment up quickly (uses Docker for Postgres/Redis):
+
+```bash
+npm install
+npm run infra:up
+npm run dev:all
+```
+
+## 🧱 First Time Setup
+
+If this is the first time you're setting up the project, run:
+
+```bash
+npm run setup
+```
+
+
 ## Technologies Used
 
 - Backend
@@ -127,7 +146,7 @@ All endpoints are prefixed with `/api`.
  - POST /api/auth/login
 	 - Description: login with credentials to receive a JWT.
 	 - Auth: public
-	 - Body: `{ "username": "<email>", "password": "<password>" }`
+	 - Body: `{ "email": "<email>", "password": "<password>" }`
 	 - Response: `{ "token": "<jwt>", "user": { "id":"...","email":"..." }}`
 
  - GET /api/credit-requests
