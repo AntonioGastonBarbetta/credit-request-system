@@ -1,6 +1,6 @@
 # Credit Request System
 
-A small, multi-country credit request processing system demonstrating a production-like architecture with synchronous validation, asynchronous processing, webhook delivery, and realtime updates.
+A production-like, multi-country credit request system designed to showcase real-world backend architecture patterns, including synchronous validation, asynchronous processing, webhook delivery, caching, and real-time updates.
 
 This repository is a teaching/demo project that implements:
 
@@ -62,8 +62,6 @@ npm run setup
 
 ## Architecture
 
-Architecture diagram will be inserted here.
-
 Textual flow:
 
 Frontend → Backend API → PostgreSQL
@@ -73,6 +71,7 @@ Backend → Socket.IO → Frontend realtime updates
 
 ![Credit Request System Architecture](docs/architecture.png)
 
+The system follows a decoupled architecture where synchronous API operations are complemented by asynchronous job processing using Redis and BullMQ. Workers handle external integrations (webhooks), while Socket.IO provides real-time updates to connected clients.
 
 ## Quick Start (Run Locally)
 
@@ -81,7 +80,7 @@ These steps assume you have Docker and Node.js (>=16) installed.
 1. Clone the repository
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/AntonioGastonBarbetta/credit-request-system.git
 cd credit-request-system
 ```
 
