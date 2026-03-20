@@ -31,6 +31,10 @@ If this is the first time you're setting up the project, run:
 npm run setup
 ```
 
+### Default dev credentials
+
+- Email: `admin@example.com`
+- Password: `password`
 
 ## Technologies Used
 
@@ -67,7 +71,7 @@ Backend → Redis/BullMQ → Worker
 Worker → Webhook delivery
 Backend → Socket.IO → Frontend realtime updates
 
-(Place diagram image above this paragraph.)
+![Credit Request System Architecture](docs/architecture.png)
 
 
 ## Quick Start (Run Locally)
